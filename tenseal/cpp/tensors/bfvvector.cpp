@@ -250,6 +250,30 @@ shared_ptr<BFVVector> BFVVector::sum_inplace(size_t /*axis=0*/) {
     return shared_from_this();
 }
 
+shared_ptr<BFVVector> BFVVector::sum_target(size_t /*axis=0*/) {
+    vector<Ciphertext> interm_sum;
+    size_t size = this->_ciphertexts.size();
+    interm_sum.resize(size);
+
+    task_t worker_func = [&](size_t start, size_t end) -> bool {
+        for (size_t idx = start; idx < end; ++idx) {
+            Ciphertext out = this->_ciphertexts[idx];
+            sum_vector(this->tenseal_context(), out, this->_sizes[idx]);
+            interm_sum[idx] = out;
+        }
+        return true;
+    };
+
+    this->dispatch_jobs(worker_func, size);
+
+    Ciphertext result;
+    tenseal_context()->evaluator->add_many(interm_sum, result);
+
+    this->_ciphertexts = {result};
+    this->_sizes = {1};
+    return shared_from_this();
+}
+
 shared_ptr<BFVVector> BFVVector::add_plain_inplace(
     const plain_t::dtype& to_add) {
     for (auto& ct : this->_ciphertexts) this->_add_plain_inplace(ct, to_add);

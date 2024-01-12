@@ -116,6 +116,9 @@ class CKKSVector(AbstractTensor):
         other = self._get_operand(other, dtype="float")
         self.data -= other
         return self
+    
+    def sum_target(self, target_size=1) -> "CKKSVector":
+        return self._wrap(self.data.sum_target(target_size))
 
     @classmethod
     def _dot(cls, other):

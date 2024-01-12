@@ -58,6 +58,7 @@ class BFVVector
     encrypted_t dot_inplace(const encrypted_t& to_mul) override;
     encrypted_t dot_plain_inplace(const plain_t& to_mul) override;
     encrypted_t sum_inplace(size_t axis = 0) override;
+    encrypted_t sum_target(size_t target_size = 1) override;
     /**
      * Encrypted Vector multiplication with encrypted matrix.
      **/

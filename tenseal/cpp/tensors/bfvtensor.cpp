@@ -359,6 +359,47 @@ shared_ptr<BFVTensor> BFVTensor::sum_inplace(size_t axis) {
     _data = TensorStorage<Ciphertext>(new_data, new_shape);
     return shared_from_this();
 }
+
+shared_ptr<BFVTensor> BFVTensor::sum_target(size_t target_size) {
+    if (target_size >= shape_with_batch().size())
+        throw invalid_argument("invalid axis");
+
+    if (_batch_size && target_size == 0) return sum_batch_inplace();
+
+    if (_batch_size) target_size--;
+
+    auto new_shape = shape();
+    auto new_len = _data.flat_size() / shape()[target_size];
+
+    // remove the summation axis
+    new_shape.erase(new_shape.begin() + target_size);
+    auto working_shape = shape();
+
+    std::vector<Ciphertext> new_data(new_len);
+    vector<vector<Ciphertext>> batches(new_len);
+
+    auto old_strides = _data.strides();
+    xt::xarray<int64_t> dummy(new_shape);
+    auto new_strides = dummy.strides();
+
+    for (size_t idx = 0; idx < _data.flat_size(); ++idx) {
+        auto pos = position_from_strides(old_strides, idx);
+        pos.erase(pos.begin() + target_size);
+
+        size_t new_idx = 0;
+        for (size_t pidx = 0; pidx < pos.size(); ++pidx)
+            new_idx += new_strides[pidx] * pos[pidx];
+
+        batches[new_idx].push_back(_data.flat_ref_at(idx));
+    }
+
+    for (size_t idx = 0; idx < new_len; ++idx) {
+        tenseal_context()->evaluator->add_many(batches[idx], new_data[idx]);
+    }
+
+    _data = TensorStorage<Ciphertext>(new_data, new_shape);
+    return shared_from_this();
+}
 shared_ptr<BFVTensor> BFVTensor::sum_batch_inplace() {
     if (!_batch_size) throw invalid_argument("unsupported operation");
 

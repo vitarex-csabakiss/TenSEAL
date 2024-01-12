@@ -22,15 +22,15 @@ CKKSVector::CKKSVector(const shared_ptr<TenSEALContext>& ctx,
     auto slot_count = ctx->slot_count<CKKSEncoder>();
     auto vec_chunks = vec.chunks(slot_count);
 
-    if (vec_chunks.size() > 1) {
-        std::cout
-            << "WARNING: The input does not fit in a single ciphertext, and "
-               "some operations will be disabled.\n"
-               "The following operations are disabled in this setup: matmul, "
-               "matmul_plain, enc_matmul_plain, conv2d_im2col.\n"
-               "If you need to use those operations, try increasing the "
-               "poly_modulus parameter, to fit your input.\n";
-    }
+    // if (vec_chunks.size() > 1) {
+    //     std::cout
+    //         << "WARNING: The input does not fit in a single ciphertext, and "
+    //            "some operations will be disabled.\n"
+    //            "The following operations are disabled in this setup: matmul, "
+    //            "matmul_plain, enc_matmul_plain, conv2d_im2col.\n"
+    //            "If you need to use those operations, try increasing the "
+    //            "poly_modulus parameter, to fit your input.\n";
+    // }
 
     this->_ciphertexts = vector<Ciphertext>();
     this->_sizes = vector<size_t>();
@@ -262,6 +262,62 @@ shared_ptr<CKKSVector> CKKSVector::sum_inplace(size_t /*axis = 0*/) {
 
     this->_ciphertexts = {result};
     this->_sizes = {1};
+
+    return shared_from_this();
+}
+
+shared_ptr<CKKSVector> CKKSVector::sum_target(size_t target_size) {
+    vector<Ciphertext> interm_sum;
+    size_t size = this->_ciphertexts.size();
+    size_t vec_size = this->_sizes[0];
+    interm_sum.resize(size);
+
+
+    //auto galois_keys = tenseal_context()->galois_keys();
+
+
+    //size_t size = this->_ciphertexts.size();
+    /*size_t size = this->_sizes[0];
+    int count = 1;
+    Ciphertext tmp;
+    Ciphertext vector = this->_ciphertexts[0];//->copy();
+    //tenseal_context()->evaluator->rotate_vector(vector, -1, *galois_keys, tmp);
+    for (size_t i = 1; i < target_size; i *= 2) {
+        tenseal_context()->evaluator->rotate_vector(vector, -i, *galois_keys, tmp);
+        tenseal_context()->evaluator->add_inplace(vector, tmp);
+        //tmp = vector;
+        count*=2;
+    }*/
+
+    /*
+    //size_t size = this->_ciphertexts.size();
+    size_t size = this->_sizes[0];
+    int count = 1;
+    Ciphertext tmp;
+    Ciphertext vector = this->_ciphertexts[0];//->copy();
+    //tenseal_context()->evaluator->rotate_vector(vector, -1, *galois_keys, tmp);
+    for (size_t i = size; i > target_size; i /= 2) {
+        tenseal_context()->evaluator->rotate_vector(vector, -count, *galois_keys, tmp);
+        tenseal_context()->evaluator->add_inplace(vector, tmp);
+        //tmp = vector;
+        count*=2;
+    }*/
+
+    task_t worker_func = [&](size_t start, size_t end) -> bool {
+        for (size_t idx = start; idx < end; ++idx) {
+            Ciphertext out = this->_ciphertexts[idx];
+            sum_vector_target(this->tenseal_context(), out, this->_sizes[idx], target_size);
+            interm_sum[idx] = out;
+        }
+        return true;
+    };
+    this->dispatch_jobs(worker_func, size);
+
+    //Ciphertext out = this->_ciphertexts[0];
+    //sum_vector_target(this->tenseal_context(), out, this->_sizes[0], target_size);
+
+    this->_ciphertexts = {interm_sum};
+    //this->_sizes = {size*vec_size};
 
     return shared_from_this();
 }

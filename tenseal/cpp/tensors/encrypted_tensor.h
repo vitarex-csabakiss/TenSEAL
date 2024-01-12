@@ -136,7 +136,11 @@ class EncryptedTensor {
     encrypted_t sum(size_t axis = 0) const {
         return this->copy()->sum_inplace(axis);
     };
+    encrypted_t sum_target(size_t target_size = 1) const {
+        return this->copy()->sum_target(target_size);
+    };
     virtual encrypted_t sum_inplace(size_t axis) = 0;
+    virtual encrypted_t sum_target(size_t target_size) = 0;
     /**
      * Polynomial evaluation with `this` as variable.
      * p(x) = coefficients[0] + coefficients[1] * x + ... + coefficients[i] *

@@ -52,6 +52,7 @@ class BFVTensor : public EncryptedTensor<int64_t, shared_ptr<BFVTensor>>,
         const PlainTensor<int64_t>& to_mul) override;
 
     shared_ptr<BFVTensor> sum_inplace(size_t axis = 0) override;
+    shared_ptr<BFVTensor> sum_target(size_t target_size = 1) override;
     shared_ptr<BFVTensor> sum_batch() {
         return this->copy()->sum_batch_inplace();
     }

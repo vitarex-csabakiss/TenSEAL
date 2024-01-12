@@ -69,4 +69,42 @@ Ciphertext &sum_vector(shared_ptr<TenSEALContext> tenseal_context,
     return vector;
 }
 
+Ciphertext &sum_vector_target(shared_ptr<TenSEALContext> tenseal_context,
+                       Ciphertext &vector, size_t size, size_t target_size) {
+    // Nothing to do
+    //if (size == 1) return vector;
+    //if (size == target_size) return vector;
+
+
+    auto rotate = [&](const Ciphertext &encrypted, int steps,
+                      const GaloisKeys &galois_keys, Ciphertext &destination) {
+        switch (tenseal_context->seal_context()
+                    ->key_context_data()
+                    ->parms()
+                    .scheme()) {
+            case scheme_type::ckks: {
+                tenseal_context->evaluator->rotate_vector(
+                    encrypted, steps, galois_keys, destination);
+                break;
+            }
+            case scheme_type::bfv: {
+                tenseal_context->evaluator->rotate_rows(
+                    encrypted, steps, galois_keys, destination);
+                break;
+            }
+            default:
+                throw invalid_argument("unsupported scheme for sum_vector");
+        }
+    };
+    auto galois_keys = tenseal_context->galois_keys();
+
+    Ciphertext tmp;
+    for (size_t i = 1; i < target_size; i *= 2) {
+        tenseal_context->evaluator->rotate_vector(vector, -i, *galois_keys, tmp);
+        tenseal_context->evaluator->add_inplace(vector, tmp);
+    }
+
+    return vector;
+}
+
 }  // namespace tenseal

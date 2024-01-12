@@ -33,6 +33,9 @@ Sum the values in the vector.
 Ciphertext& sum_vector(shared_ptr<TenSEALContext> tenseal_context,
                        Ciphertext& vector, size_t size);
 
+Ciphertext& sum_vector_target(shared_ptr<TenSEALContext> tenseal_context,
+                       Ciphertext& vector, size_t size, size_t target_size);
+
 template <typename T>
 shared_ptr<T> compute_polynomial_term(int degree, double coeff,
                                       const vector<shared_ptr<T>>& x_squares) {

@@ -381,6 +381,7 @@ void bind_ckks_vector(py::module &m) {
         .def("dot_", &CKKSVector::dot_plain_inplace)
         .def("sum", &CKKSVector::sum, py::arg("axis") = 0)
         .def("sum_", &CKKSVector::sum_inplace, py::arg("axis") = 0)
+        .def("sum_target", &CKKSVector::sum_target, py::arg("target_size") = 1)
         .def("matmul", &CKKSVector::matmul_plain)
         .def("matmul_", &CKKSVector::matmul_plain_inplace)
         .def("mm", &CKKSVector::matmul_plain)
